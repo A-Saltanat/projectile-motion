@@ -1,0 +1,752 @@
+<!doctype html>
+<html lang="kk">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Лақтырылған денелер лабораториясы — Интерактив</title>
+  <style>
+    :root{
+      /* Blue-white theme colors */
+      --bg-1:#e0f7fa; /* Very light blue */
+      --bg-2:#ffffff; /* Pure white */
+      --accent:#00bcd4; /* Cyan/Turquoise */
+      --accent-2:#039be5; /* Deep sky blue */
+      --text-dark:#01579b; /* Darker blue for main text */
+      --text-light:#263238; /* Almost black for titles */
+      --muted:#546e7a; /* Muted grey-blue */
+      --panel-bg:rgba(255,255,255,0.8); /* Slightly transparent white for panels */
+      --border-light:#e0f2f7; /* Light blue border */
+      --radius:14px;
+      /* Canvas colors for JavaScript access */
+      --canvas-axis-color: rgba(0,0,0,0.3);
+      --canvas-label-color: #01579b;
+      --canvas-path-color: #039be5; /* Deep sky blue for main path */
+      --canvas-graph-color: #00c853; /* Green accent for graph line */
+      --canvas-dot-color: #ef5350; /* Red dot for animation */
+      --canvas-grid-color: rgba(0,0,0,0.08);
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      min-height:100vh;
+      background:linear-gradient(180deg,var(--bg-1),var(--bg-2));
+      color:var(--text-dark);
+      font-family:Inter, 'Times New Roman', sans-serif;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      padding:20px;
+      gap:18px;
+    }
+    header{
+      width:min(1200px,98%);
+      background:linear-gradient(90deg,var(--accent),var(--accent-2));
+      border-radius:18px;
+      padding:16px 18px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      color:#ffffff;
+      box-shadow:0 12px 24px rgba(0,0,0,0.1);
+    }
+    .brand{display:flex;gap:12px;align-items:center}
+    .logo{
+      width:56px;height:56px;
+      background:#ffffff;
+      border-radius:12px;
+      display:grid;place-items:center;
+      font-weight:900;
+      color:var(--accent-2);
+    }
+    .title{font-weight:800;font-size:18px}
+    .subtitle{font-size:13px;color:rgba(255,255,255,0.8);}
+
+    .container{width:min(1200px,98%);display:grid;grid-template-columns:360px 1fr;gap:20px}
+    @media(max-width:980px){.container{grid-template-columns:1fr}}
+
+    .sidebar{
+      background:var(--panel-bg);
+      border-radius:var(--radius);
+      padding:14px;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+      border:1px solid var(--border-light);
+      box-shadow:0 4px 12px rgba(0,0,0,0.05);
+    }
+    .menu-title{font-weight:800;color:var(--text-dark);}
+    .menu{display:flex;flex-direction:column;gap:8px}
+    .menu button{
+      display:flex;gap:10px;align-items:center;padding:10px;border-radius:12px;border:1px solid transparent;background:transparent;
+      color:var(--muted);
+      font-weight:700;cursor:pointer;
+    }
+    .menu button.active{
+      background:rgba(0,188,212,0.1);
+      border:1px solid var(--accent);
+      color:var(--text-dark);
+    }
+    .ico{
+      width:40px;height:40px;
+      background:var(--border-light);
+      display:grid;place-items:center;border-radius:8px;border:1px solid rgba(0,0,0,0.05);
+      color:var(--accent-2);
+    }
+
+    .panel{
+      margin-top:6px;padding:12px;border-radius:12px;border:1px solid var(--border-light);
+      display:flex;flex-direction:column;gap:10px;
+      background:var(--panel-bg);
+      box-shadow:0 2px 8px rgba(0,0,0,0.03);
+    }
+    .row{display:flex;align-items:center;gap:10px}
+    .row label{min-width:78px;color:var(--muted);font-size:13px}
+    input[type=range]{flex:1}
+    input[type=range]::-webkit-slider-thumb {
+        background: var(--accent);
+    }
+    input[type=range]::-moz-range-thumb {
+        background: var(--accent);
+    }
+    .num{
+      min-width:52px;text-align:center;
+      color:var(--text-dark);
+      background:rgba(0,0,0,0.03);
+      border:1px solid var(--border-light);
+      border-radius:8px;padding:6px 8px;font-weight:700;
+    }
+    
+    .row.disabled input[type=range], .row.disabled .num {
+        opacity: 0.5;
+        pointer-events: none;
+        background: rgba(0,0,0,0.01);
+    }
+    
+    .fixed-value {
+        min-width: 52px;
+        text-align: center;
+        color: var(--accent-2);
+        background: rgba(3,155,229,0.1);
+        border: 1px solid rgba(3,155,229,0.2);
+        border-radius: 8px;
+        padding: 6px 8px;
+        font-weight: 700;
+    }
+
+    .btn{padding:8px 12px;border-radius:12px;font-weight:800;cursor:pointer;border:1px solid transparent;transition:all .14s ease}
+    .btn.primary{
+      background:linear-gradient(90deg,var(--accent),var(--accent-2));
+      color:#ffffff;
+      box-shadow:0 2px 6px rgba(0,0,0,0.1);
+    }
+    .btn.ghost{
+      background:transparent;
+      color:var(--text-dark);
+      border:1px solid var(--border-light);
+    }
+    .btn.ghost:hover {
+      background: rgba(0,0,0,0.05);
+    }
+
+    main.stage{display:flex;flex-direction:column;gap:14px}
+    .info-card{
+      padding:12px;border-radius:12px;border:1px solid var(--border-light);
+      background:var(--panel-bg);
+      box-shadow:0 2px 8px rgba(0,0,0,0.03);
+    }
+    .theory{
+      background:var(--bg-2);
+      padding:16px;border-radius:12px;
+      color:var(--text-light);
+      box-shadow:0 8px 24px rgba(0,0,0,0.1);
+      margin-bottom: 10px;
+    }
+    .theory h2{margin-top:0;color:var(--accent-2);text-align:center}
+    .theory .section{display:grid;grid-template-columns:1fr 240px;gap:14px;align-items:center;margin-bottom:12px}
+    @media(max-width:900px){.theory .section{grid-template-columns:1fr}}
+    .illustration{
+      background:linear-gradient(180deg,#ffffff,#f0f8ff);
+      padding:10px;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,0.08);
+      display:flex;align-items:center;justify-content:center;
+    }
+    .theory-content { display: none; }
+    .theory-content.active { display: block; }
+
+    canvas{
+      width:100%;height:320px;
+      border-radius:12px;border:1px solid var(--border-light);
+      background:#ffffff;
+      box-shadow:0 4px 12px rgba(0,0,0,0.08);
+    }
+    .controls{display:flex;gap:8px;flex-wrap:wrap}
+    .small{padding:6px 8px;border-radius:8px;font-weight:700}
+    .footer-note{font-size:13px;color:var(--muted)}
+
+    .flex-between{display:flex;justify-content:space-between;align-items:center}
+    
+    /* Accessibility focus */
+    button:focus, input:focus{outline:3px solid rgba(0,188,212,0.3)}
+
+    .canvas-container {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 14px;
+    }
+
+    /* SVG Colors for illustrations - ensure they fit the new theme */
+    .illustration svg .path-horizontal { stroke: #00bcd4; }
+    .illustration svg .path-angle { stroke: #039be5; }
+    .illustration svg .path-vertical { stroke: #00796b; }
+    .illustration svg circle { fill: #ef5350; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <div class="logo">LD</div>
+      <div>
+        <div class="title">Лақтырылған денелер лабораториясы</div>
+        <div class="subtitle">Интерактивті симуляция — теория + графика + анимация</div>
+      </div>
+    </div>
+    <div class="chip">Қазақша</div>
+  </header>
+
+  <div class="container">
+    <aside class="sidebar" aria-label="Панель басқару">
+      <div>
+        <div class="menu-title">Бөлімдер</div>
+        <div class="menu" role="tablist" aria-label="Тип лақтыру">
+          <button class="active" role="tab" aria-selected="true" data-type="horizontal"><div class="ico">→</div><div><div class="name">Көлденең</div><div class="desc">y = y₀ − ½ g t²</div></div></button>
+          <button role="tab" data-type="angle"><div class="ico">∠</div><div><div class="name">Бұрышпен</div><div class="desc">vₓ = v₀ cosα, vᵧ = v₀ sinα</div></div></button>
+          <button role="tab" data-type="vertical"><div class="ico">↑</div><div><div class="name">Тік</div><div><div class="name">v(t)=v₀ − g t</div></div></button>
+        </div>
+      </div>
+
+      <div class="panel" aria-hidden="false">
+        <div class="menu-title">Параметрлер</div>
+        <div class="row"><label for="v0">v₀ (м/с)</label><input id="v0" type="range" min="0"  value="12" step="0.1"><div class="num" id="v0-num">12.0</div></div>
+        
+        <div class="row" id="angle-row"><label for="angle">α (°)</label><input id="angle" type="range" min="0"  value="45" step="1"><div class="num" id="angle-num">45</div></div>
+        
+        <div class="row"><label for="y0">y₀ (м)</label><input id="y0" type="range" min="0"  value="1" step="0.1"><div class="num" id="y0-num">1.0</div></div>
+        
+        <div class="row">
+          <label>g (м/с²)</label>
+          <div class="fixed-value">9.81</div>
+        </div>
+
+        <div class="menu-title">Визуализация</div>
+        <div class="row"><label for="steps">Қадам</label><input id="steps" type="range" min="50" max="600" value="250" step="10"><div class="num" id="steps-num">250</div></div>
+        <div class="row"><label>Опция</label><div style="display:flex;gap:8px"><button class="btn ghost small" id="togglePath">Траектория</button><button class="btn ghost small" id="toggleGrid">Тор</button></div></div>
+
+        <div style="display:flex;gap:8px;margin-top:6px">
+          <button class="btn primary" id="applyBtn">Жіберу</button>
+          <button class="btn ghost" id="pauseBtn">Тоқтату</button>
+          <button class="btn ghost" id="resetBtn">Қалпына келтіру</button>
+        </div>
+
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button class="btn ghost" id="downloadCsv">CSV жүктеу</button>
+          <button class="btn ghost" id="speedDown">-</button>
+          <div class="num" id="speedDisplay">1x</div>
+          <button class="btn ghost" id="speedUp">+</button>
+        </div>
+
+      </div>
+    </aside>
+
+    <main class="stage" role="main">
+      <div class="info-card flex-between">
+        <div>
+          <strong id="currentTitle">Көлденең лақтыру</strong>
+          <div class="footer-note" style="margin-top:6px">Бастапқы параметрлер: v₀ = <span id="display-v">12.0</span> м/с, α = <span id="display-a">45</span>°, y₀ = <span id="display-y">1.0</span> м, g = 9.81 м/с²</div>
+        </div>
+        <div class="footer-note">Басқару: Play / Pause / Reset — экспериментті бастаңыз</div>
+      </div>
+
+      <div class="theory" id="theory">
+        <h2>Теориялық мәлімет</h2>
+
+        <div class="theory-content active" id="theory-horizontal">
+          <div class="section">
+            <div>
+              <h3>Көлденең бағытта лақтырылған дене</h3>
+              <p>Көлденең бағытта лақтырылған дененің қозғалысы— бұл дене бастапқыда жерге белгілі бір биіктіктен көлденең бағытта (яғни, бастапқы жылдамдық тек горизонталь бағытта болады) лақтырылған қозғалыс түрі. </p>
+              <pre style="background:#f3f8ff;padding:8px;border-radius:8px">Бастапқы шарттар:v<sub>0x</sub>​=v<sub>0​</sub>,v<sub>0y​</sub>=0
+Қозғалыс теңдеулері:x=v<sub>0​</sub>t; y=1/2*​gt<sup>2​</sup>
+Жерге түсу уақыты (дене биіктігі ℎ): <math><mi>t</mi><mo>=</mo><msqrt> <mfrac><mn>2h</mn><mi>g</mi></mfrac></msqrt></math>
+Ұшу қашықтығы (горизонталь арақашықтық):<math><mi>L</mi><mo>=</mo>
+  <mi>v</mi><msub><mi></mi><mn>0</mn></msub><msqrt><mfrac> <mrow><mn>2</mn><mi>h</mi></mrow><mi>g</mi></mfrac></msqrt></math>
+</pre>
+  </div>
+            <div class="illustration" aria-hidden="true">
+              <svg viewBox="0 0 400 220" width="220" height="120" xmlns="http://www.w3.org/2000/svg"><rect width="100%" height="100%" fill="#fff"/><path class="path-horizontal" d="M20,180 C100,120 180,120 300,70" fill="none" stroke-width="4"/><circle cx="20" cy="180" r="5" /></svg>
+            </div>
+          </div>
+        </div>
+        
+        <div class="theory-content" id="theory-angle">
+          <div class="section">
+            <div>
+              <h3>Бұрышпен лақтырылған дене</h3>
+              <p>Бұрышпен лақтырылған дене— бұл дене бастапқыда жерге белгілі бір бұрышпен (яғни, көлденең бағытқа қатысты бұрыш жасап) жылдамдықпен лақтырылған кезде пайда болатын қозғалыс түрі.</p>
+              <pre style="background:#f3f8ff;padding:8px;border-radius:8px">Бастапқы шарттар:<math><mi>v</mi><msub><mi></mi><mn>0x</mn></msub><mo>=</mo><mi>v</mi><msub><mi></mi><mn>0</mn></msub><mo>cos&#x2061;</mo><mi>&#x03B1;</mi><mo>,</mo><mi>v</mi><msub><mi></mi><mn>0y</mn></msub><mo>=</mo><mi>v</mi><msub><mi></mi><mn>0</mn></msub><mo>sin&#x2061;</mo><mi>&#x03B1;</mi>
+</math>
+Қозғалыс теңдеулері:<math><mi>x</mi><mo>=</mo><mi>v</mi><msub><mi></mi><mn>0</mn></msub><mo>cos&#x2061;</mo><mi>&#x03B1;</mi><mo>&#x2062;</mo><mi>t, </mi>; 
+
+<mi>y</mi><mo>=</mo><mi>v</mi><msub><mi></mi><mn>0</mn></msub><mo>sin&#x2061;</mo><mi>&#x03B1;</mi><mo>&#x2062;</mo><mi>t</mi><mo>−</mo><mfrac><mn>1</mn><mn>2</mn></mfrac><mi>g</mi><msup><mi>t</mi><mn>2</mn></msup>
+</math>
+Ұшу уақыты:</b> t = (2·v₀·sinα) / g
+Ең жоғарғы биіктік: h<sub>max</sub> = (v<sub>0</sub><sup>2</sup> · sin<sup>2</sup>α) / (2g)
+Ұшу қашықтығы: L = (v<sub>0</sub><sup>2</sup> · sin(2α)) / g
+</pre>
+            </div>
+            <div class="illustration" aria-hidden="true">
+              <svg viewBox="0 0 420 220" width="220" height="120" xmlns="http://www.w3.org/2000/svg"><rect width="100%" height="100%" fill="#fff"/><path class="path-angle" d="M30,180 C120,40 300,40 380,180" fill="none" stroke-width="4"/><circle cx="30" cy="180" r="5" /></svg>
+            </div>
+          </div>
+        </div>
+
+        <div class="theory-content" id="theory-vertical">
+          <div class="section">
+            <div>
+              <h3>Тік жоғары лақтырылған дене</h3>
+              <p>Тік бағытта лақтырылған дене — бұл дене қозғалысының бір түрі, мұнда дене тік жоғары немесе тік төмен бағытта бастапқы жылдамдықпен лақтырылады.</p>
+              <pre style="background:#f3f8ff;padding:8px;border-radius:8px">Бастапқы шарттар:<math><msub><mi>v</mi><mn>0x</mn></msub><mo>=</mo><mn>0</mn>
+  <mo>,</mo><msub><mi>v</mi><mn>0y</mn></msub><mo>=</mo><msub><mi>v</mi><mn>0</mn></msub></math>
+Қозғалыс теңдеуі:<math><mi>y</mi><mo>=</mo><msub><mi>v</mi><mn>0</mn></msub><mi>t</mi><mo>-</mo><mfrac><mn>1</mn><mn>2</mn></mfrac><mi>g</mi><msup><mi>t</mi><mn>2</mn></msup></math>
+Ең жоғарғы биіктік:<math><msub><mi>h</mi><mi>max</mi></msub><mo>=</mo><mfrac><msup><msub><mi>v</mi><mn>0</mn></msub><mn>2</mn></msup><mrow><mn>2</mn><mi>g</mi></mrow></mfrac></math>
+Ең жоғарғы нүктеге көтерілу уақыты:<math><msub><mi>t</mi><mi>жоғ</mi></msub><mo>=</mo><mfrac><msub><mi>v</mi><mn>0</mn></msub><mi>g</mi></mfrac></math>
+Толық ұшу уақыты:<math><msub><mi>t</mi><mi>толық</mi></msub><mo>=</mo><mfrac><mrow><mn>2</mn><msub><mi>v</mi><mn>0</mn></msub></mrow><mi>g</mi></mfrac></math></pre>
+            </div>
+            <div class="illustration" aria-hidden="true">
+              <svg viewBox="0 0 380 220" width="220" height="120" xmlns="http://www.w3.org/2000/svg"><rect width="100%" height="100%" fill="#fff"/><path class="path-vertical" d="M190,180 C190,120 190,80 190,40" fill="none" stroke-width="4"/><circle cx="190" cy="180" r="5" /></svg>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="canvas-container">
+        <canvas id="trajectoryCanvas" aria-label="Траектория канвасы"></canvas>
+        <canvas id="graphCanvas" aria-label="Биіктік уақытқа тәуелді график"></canvas>
+      </div>
+
+    </main>
+  </div>
+
+  <script>
+    // --- CONSTANT ---
+    const GRAVITY = 9.81; // Hardcoded constant value for g
+    // ----------------
+
+    // --- DOM refs
+    const menuButtons = document.querySelectorAll('.menu button');
+    const v0 = document.getElementById('v0'), v0num = document.getElementById('v0-num');
+    const angleRow = document.getElementById('angle-row');
+    const angle = document.getElementById('angle'), angleNum = document.getElementById('angle-num');
+    const y0 = document.getElementById('y0'), y0num = document.getElementById('y0-num');
+    const stepsEl = document.getElementById('steps'), stepsNum = document.getElementById('steps-num');
+    const displayV = document.getElementById('display-v'), displayA = document.getElementById('display-a'), displayY = document.getElementById('display-y');
+    const applyBtn = document.getElementById('applyBtn'), resetBtn = document.getElementById('resetBtn'), pauseBtn = document.getElementById('pauseBtn');
+    const trajCanvas = document.getElementById('trajectoryCanvas'), graphCanvas = document.getElementById('graphCanvas');
+    const trajCtx = trajCanvas.getContext('2d'), graphCtx = graphCanvas.getContext('2d');
+    const currentTitle = document.getElementById('currentTitle');
+    const togglePath = document.getElementById('togglePath'), toggleGrid = document.getElementById('toggleGrid');
+    const downloadCsv = document.getElementById('downloadCsv');
+    const speedDown = document.getElementById('speedDown'), speedUp = document.getElementById('speedUp'), speedDisplay = document.getElementById('speedDisplay');
+    
+    // Theory DOM elements
+    const theoryHorizontal = document.getElementById('theory-horizontal');
+    const theoryAngle = document.getElementById('theory-angle');
+    const theoryVertical = document.getElementById('theory-vertical');
+
+    // --- state
+    let currentType = 'horizontal';
+    let lastTrajectory = null;
+    let showPath = true, showGrid = false;
+    let animationId = null, playing = false;
+    let simSpeed = 1; // multiplier
+    
+    // --- Utility function to get CSS variable values (Crucial for new design)
+    function getCssVar(name) {
+        return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    }
+
+    // --- responsive canvas sizing
+    function resizeCanvases(){
+      [trajCanvas, graphCanvas].forEach(c=>{
+        const rect = c.getBoundingClientRect();
+        c.width = Math.max(300, Math.floor(rect.width));
+        c.height = Math.max(200, Math.floor(rect.height));
+      });
+      if(lastTrajectory) drawStatic(lastTrajectory);
+    }
+    window.addEventListener('resize', resizeCanvases);
+    // Initial size fix
+    setTimeout(resizeCanvases,50);
+    
+    // --- Angle and Theory Update Function 
+    function updateMode(type) {
+        // 1. Update Theory Display
+        theoryHorizontal.classList.remove('active');
+        theoryAngle.classList.remove('active');
+        theoryVertical.classList.remove('active');
+
+        // 2. Adjust Angle Input State
+        angle.disabled = true;
+        angleRow.classList.add('disabled');
+        
+        if (type === 'horizontal') {
+            theoryHorizontal.classList.add('active');
+            currentTitle.textContent='Көлденең лақтыру';
+            angle.value = 0;
+        } else if (type === 'angle') {
+            theoryAngle.classList.add('active');
+            currentTitle.textContent='Бұрышпен лақтыру';
+            angle.disabled = false;
+            angleRow.classList.remove('disabled');
+        } else if (type === 'vertical') {
+            theoryVertical.classList.add('active');
+            currentTitle.textContent='Тік жоғары лақтыру';
+            angle.value = 90;
+        }
+        
+        updateNums();
+        lastTrajectory = generateTrajectory();
+        drawStatic(lastTrajectory);
+        stopAnimation(); 
+    }
+
+    // menu
+    menuButtons.forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        menuButtons.forEach(b=>{b.classList.remove('active');b.setAttribute('aria-selected','false')});
+        btn.classList.add('active'); btn.setAttribute('aria-selected','true');
+        currentType = btn.dataset.type;
+        updateMode(currentType); 
+      });
+    });
+    
+    // Initial mode setup
+    updateMode(currentType);
+
+    function updateNums(){
+      v0num.textContent = parseFloat(v0.value).toFixed(1);
+      
+      let currentAngle = angle.value;
+      if (currentType === 'horizontal') currentAngle = 0;
+      else if (currentType === 'vertical') currentAngle = 90;
+      
+      angleNum.textContent = currentAngle;
+      displayA.textContent = currentAngle;
+      
+      y0num.textContent = parseFloat(y0.value).toFixed(1);
+      stepsNum.textContent = stepsEl.value;
+      displayV.textContent = parseFloat(v0.value).toFixed(1);
+      displayY.textContent = parseFloat(y0.value).toFixed(1);
+    }
+    
+    // Add event listeners for inputs
+    [v0,angle,y0,stepsEl].forEach(el=>el.addEventListener('input', updateNums));
+    updateNums();
+    
+    // generate trajectory points
+    function generateTrajectory(){
+      const g = GRAVITY;
+      const v = parseFloat(v0.value);
+      const yStart = parseFloat(y0.value);
+      let a; 
+      
+      if (currentType === 'horizontal') a = 0; 
+      else if (currentType === 'vertical') a = Math.PI/2; 
+      else a = parseFloat(angle.value)*Math.PI/180;
+      
+      let tMax, xFunc, yFunc;
+
+      if(currentType==='horizontal'){
+        if(yStart<=0){ tMax = 0.01; }
+        else tMax = Math.sqrt(2*yStart/g);
+        xFunc = t=> v*t;
+        yFunc = t=> yStart - 0.5*g*t*t;
+      } else if(currentType==='angle'){
+        const vy = v*Math.sin(a);
+        const discr = vy*vy + 2*g*yStart;
+        tMax = (vy + Math.sqrt(Math.max(0,discr)))/g;
+        xFunc = t=> v*Math.cos(a)*t;
+        yFunc = t=> yStart + vy*t - 0.5*g*t*t;
+      } else {
+        // vertical
+        const vy0 = v;
+        const discr = vy0*vy0 + 2*g*yStart;
+        tMax = (vy0 + Math.sqrt(Math.max(0,discr)))/g;
+        xFunc = t=> 0;
+        yFunc = t=> yStart + vy0*t - 0.5*g*t*t;
+      }
+
+      const steps = Math.max(50, Math.min(1000, parseInt(stepsEl.value,10) || 250));
+      const points = [];
+      for(let i=0;i<=steps;i++){
+        const t = i/steps * tMax;
+        const x = xFunc(t); const y = yFunc(t);
+        points.push({t, x: x, y: y}); 
+      }
+      lastTrajectory = points;
+      return points;
+    }
+
+    // draw static preview (FIXED: used getCssVar for colors)
+    function drawStatic(traj){
+      const ctx = trajCtx; const c = trajCanvas;
+      ctx.clearRect(0,0,c.width,c.height);
+      const margin = 28;
+      const xVals = traj.map(p=>p.x);
+      const yVals = traj.map(p=>p.y);
+      const xMax = Math.max(1e-6, ...xVals.map(Math.abs));
+      const yMax = Math.max(1e-6, ...yVals);
+      
+      let scaleX, scaleY, offsetX = 0;
+      
+      if (currentType === 'vertical') {
+        scaleX = (c.width - 2*margin) / (Math.max(1, yMax / 2)); 
+        offsetX = c.width / 2;
+      } else {
+        scaleX = (c.width - 2*margin) / xMax;
+        offsetX = margin;
+      }
+
+      scaleY = (c.height - 2*margin) / Math.max(1e-6, yMax);
+      
+      // grid (light grey)
+      if(showGrid){
+        ctx.strokeStyle = getCssVar('--canvas-grid-color'); ctx.lineWidth=1;
+        const gx = 6, gy = 4;
+        for(let i=0;i<=gx;i++){
+          const x = (currentType === 'vertical') ? offsetX + (i - gx/2)*(c.width-2*margin)/gx : margin + i*(c.width-2*margin)/gx;
+          ctx.beginPath(); ctx.moveTo(x, margin); ctx.lineTo(x, c.height-margin); ctx.stroke();
+        }
+        for(let j=0;j<=gy;j++){
+          const y = margin + j*(c.height-2*margin)/gy;
+          ctx.beginPath(); ctx.moveTo(margin, y); ctx.lineTo(c.width-margin, y); ctx.stroke();
+        }
+      }
+
+      // axes (darker grey/blue)
+      ctx.strokeStyle = getCssVar('--canvas-axis-color'); ctx.lineWidth = 1.5;
+      ctx.beginPath(); 
+      ctx.moveTo(margin, c.height-margin); 
+      ctx.lineTo(c.width-margin, c.height-margin); 
+      ctx.stroke();
+      ctx.beginPath(); 
+      if (currentType === 'vertical') {
+          ctx.moveTo(offsetX, c.height-margin); 
+          ctx.lineTo(offsetX, margin);
+      } else {
+          ctx.moveTo(margin, c.height-margin); 
+          ctx.lineTo(margin, margin); 
+      }
+      ctx.stroke();
+
+      // path (accent color)
+      if(showPath){
+        ctx.strokeStyle = getCssVar('--canvas-path-color'); ctx.lineWidth = 2.5; ctx.beginPath();
+        traj.forEach((p,i)=>{
+          const x = (currentType === 'vertical') ? offsetX : offsetX + p.x*scaleX;
+          const y = c.height - margin - p.y*scaleY;
+          if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+        });
+        ctx.stroke();
+      }
+
+      // final point (red accent for visibility)
+      const last = traj[traj.length-1];
+      const fx = (currentType === 'vertical') ? offsetX : offsetX + last.x*scaleX; 
+      const fy = c.height - margin - last.y*scaleY;
+      ctx.fillStyle = getCssVar('--canvas-dot-color'); ctx.beginPath(); ctx.arc(fx, fy, 6,0,Math.PI*2); ctx.fill();
+
+      // labels (dark blue)
+      ctx.fillStyle = getCssVar('--canvas-label-color'); ctx.font='12px sans-serif'; 
+      ctx.textAlign='left'; 
+      ctx.fillText(currentType === 'vertical' ? 'x=0' : 'x (м)', c.width-80, c.height-10); 
+      ctx.fillText('y (м)', (currentType === 'vertical' ? offsetX + 6 : 6), 14);
+
+      // graph
+      drawGraph(traj);
+    }
+
+    // draw graph (FIXED: used getCssVar for colors)
+    function drawGraph(traj){
+      const ctx = graphCtx; const c = graphCanvas; ctx.clearRect(0,0,c.width,c.height);
+      const margin = 50;
+      const tMax = Math.max(1e-6, ...traj.map(p=>p.t));
+      const yMax = Math.max(1e-6, ...traj.map(p=>p.y));
+      const scaleX = (c.width-2*margin)/tMax; const scaleY = (c.height-2*margin)/yMax;
+
+      // axes (darker grey/blue)
+      ctx.strokeStyle=getCssVar('--canvas-axis-color'); ctx.lineWidth=1; ctx.beginPath(); 
+      ctx.moveTo(margin, c.height-margin); ctx.lineTo(c.width-margin, c.height-margin); 
+      ctx.moveTo(margin, c.height-margin); ctx.lineTo(margin, margin); ctx.stroke();
+      
+      // X ticks (dark blue)
+      ctx.fillStyle=getCssVar('--canvas-label-color'); ctx.font='12px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='top';
+      const numX = 5; 
+      for(let i=0;i<=numX;i++){ 
+        const t = i/numX * tMax; 
+        const x = margin + t*scaleX; 
+        ctx.fillText(t.toFixed(2)+' с', x, c.height-margin+4); 
+      }
+      // Y ticks (dark blue)
+      ctx.textAlign='right'; ctx.textBaseline='middle'; const numY=5; 
+      for(let j=0;j<=numY;j++){ 
+        const yv = j/numY * yMax; 
+        const y = c.height-margin - yv*scaleY; 
+        ctx.fillText(yv.toFixed(2)+' м', margin-6, y); 
+      }
+      ctx.textAlign='center'; ctx.fillText('Уақыт (t)', c.width/2, c.height-5);
+      ctx.textAlign='left'; ctx.fillText('Биіктік (y)', 5, 5);
+
+
+      // curve (y vs t) (greenish-blue accent)
+      ctx.strokeStyle=getCssVar('--canvas-graph-color'); ctx.lineWidth=2.3; ctx.beginPath();
+      traj.forEach((p,i)=>{ 
+        const x = margin + p.t*scaleX; 
+        const y = c.height-margin - p.y*scaleY; 
+        if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y); 
+      }); 
+      ctx.stroke();
+    }
+
+    // animation (FIXED: used getCssVar for colors)
+    function playAnimation(){
+      if(!lastTrajectory) lastTrajectory = generateTrajectory();
+      const traj = lastTrajectory;
+      const margin=28; const c = trajCanvas; const ctx = trajCtx;
+      const xVals = traj.map(p=>p.x);
+      const yVals = traj.map(p=>p.y);
+      const xMax = Math.max(1e-6, ...xVals.map(Math.abs)); 
+      const yMax = Math.max(1e-6, ...yVals);
+      
+      let scaleX, scaleY, offsetX = 0;
+      
+      if (currentType === 'vertical') {
+        scaleX = (c.width - 2*margin) / (Math.max(1, yMax / 2)); 
+        offsetX = c.width / 2;
+      } else {
+        scaleX = (c.width - 2*margin) / xMax;
+        offsetX = margin;
+      }
+      scaleY = (c.height - 2*margin) / Math.max(1e-6, yMax);
+
+
+      let i = 0; const total = traj.length; playing = true; pauseBtn.textContent = 'Тоқтату';
+      
+      function step(){
+        // Clear and redraw static elements (axes, grid, path)
+        ctx.clearRect(0,0,c.width,c.height);
+        drawStatic(traj);
+
+        // draw partial trajectory up to current point (i is the index) (accent color)
+        ctx.strokeStyle=getCssVar('--canvas-path-color'); ctx.lineWidth=2.6; ctx.beginPath();
+        for(let j=0;j<=i;j++){ 
+          const p = traj[j]; 
+          const x = (currentType === 'vertical') ? offsetX : offsetX + p.x*scaleX;
+          const y = c.height-margin - p.y*scaleY; 
+          if(j===0) ctx.moveTo(x,y); else ctx.lineTo(x,y); 
+        }
+        ctx.stroke();
+
+        // moving ball (red accent)
+        const p = traj[Math.min(i, total-1)]; 
+        const bx = (currentType === 'vertical') ? offsetX : offsetX + p.x*scaleX; 
+        const by = c.height-margin - p.y*scaleY;
+        ctx.fillStyle=getCssVar('--canvas-dot-color'); ctx.beginPath(); ctx.arc(bx,by,7,0,Math.PI*2); ctx.fill();
+        
+        // Animate point on the Y(t) graph (red accent)
+        const gCtx = graphCtx; 
+        const gC = graphCanvas;
+        const gMargin = 36;
+        const tMax = Math.max(1e-6, ...traj.map(p=>p.t));
+        const gYMax = Math.max(1e-6, ...traj.map(p=>p.y));
+        const gScaleX = (gC.width-2*gMargin)/tMax; const gScaleY = (gC.height-2*gMargin)/gYMax;
+
+        const gt = traj[Math.min(i, total-1)].t;
+        const gy = traj[Math.min(i, total-1)].y;
+        
+        const gpx = gMargin + gt*gScaleX;
+        const gpy = gC.height - gMargin - gy*gScaleY;
+
+        gCtx.fillStyle=getCssVar('--canvas-dot-color'); 
+        gCtx.beginPath(); 
+        gCtx.arc(gpx, gpy, 5,0,Math.PI*2); 
+        gCtx.fill();
+
+        // advance
+        i += Math.max(1, Math.round(simSpeed));
+
+        if(i < total && playing){ 
+          animationId = requestAnimationFrame(step); 
+        } else { 
+          playing=false; pauseBtn.textContent='Ойнату'; 
+          drawStatic(traj); // Final static draw
+        }
+      }
+      cancelAnimationFrame(animationId);
+      animationId = requestAnimationFrame(step);
+    }
+
+    function stopAnimation(){ playing=false; cancelAnimationFrame(animationId); pauseBtn.textContent='Ойнату'; }
+
+    // controls (no changes needed)
+    applyBtn.addEventListener('click', ()=>{ updateNums(); lastTrajectory = generateTrajectory(); drawStatic(lastTrajectory); playAnimation(); });
+    pauseBtn.addEventListener('click', ()=>{ if(playing) stopAnimation(); else playAnimation(); });
+    
+    resetBtn.addEventListener('click', ()=>{ 
+      v0.value=12; angle.value=45; y0.value=1; stepsEl.value=250; 
+      
+      menuButtons.forEach(b=>{b.classList.remove('active');b.setAttribute('aria-selected','false')});
+      const horizontalBtn = document.querySelector('[data-type="horizontal"]');
+      horizontalBtn.classList.add('active'); horizontalBtn.setAttribute('aria-selected','true');
+      currentType = 'horizontal';
+      
+      updateMode(currentType); 
+      updateNums(); 
+      lastTrajectory = generateTrajectory(); 
+      drawStatic(lastTrajectory); 
+      stopAnimation(); 
+    });
+
+    togglePath.addEventListener('click', ()=>{ 
+        showPath = !showPath; 
+        togglePath.classList.toggle('active'); 
+        lastTrajectory = lastTrajectory || generateTrajectory(); 
+        drawStatic(lastTrajectory); 
+    });
+    toggleGrid.addEventListener('click', ()=>{ 
+        showGrid = !showGrid; 
+        toggleGrid.classList.toggle('active'); 
+        lastTrajectory = lastTrajectory || generateTrajectory(); 
+        drawStatic(lastTrajectory); 
+    });
+
+    speedDown.addEventListener('click', ()=>{ simSpeed = Math.max(0.25, simSpeed - 0.25); speedDisplay.textContent = simSpeed.toFixed(2).replace(/\.00$/, '') + 'x'; });
+    speedUp.addEventListener('click', ()=>{ simSpeed = Math.min(4, simSpeed + 0.25); speedDisplay.textContent = simSpeed.toFixed(2).replace(/\.00$/, '') + 'x'; });
+
+    downloadCsv.addEventListener('click', ()=>{
+      const traj = lastTrajectory || generateTrajectory();
+      let csv = 't,x,y\n'; traj.forEach(p=>{ csv += p.t.toFixed(6)+','+p.x.toFixed(6)+','+p.y.toFixed(6)+'\n'; });
+      const blob = new Blob([csv], {type:'text/csv'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = 'trajectory.csv'; a.click(); URL.revokeObjectURL(url);
+    });
+
+    // initial draw
+    lastTrajectory = generateTrajectory();
+    drawStatic(lastTrajectory);
+
+    // keyboard accessibility: space to toggle play/pause
+    window.addEventListener('keydown', (e)=>{ if(e.code === 'Space'){ e.preventDefault(); if(playing) stopAnimation(); else playAnimation(); } });
+
+  </script>
+</body>
+</html>
